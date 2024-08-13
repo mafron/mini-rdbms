@@ -1,5 +1,6 @@
-use std::fs::{File, OpenOption}; // File構造体はファイルディスクリプタのラッパー
+use std::fs::{File, OpenOptions}; // File構造体はファイルディスクリプタのラッパー
 use std::path::Path;
+use std::io::{self, prelude::*, SeekFrom};
 
 // ページサイズ：4096Byte固定
 const PAGE_SIZE: u64 = 4096;
@@ -18,6 +19,12 @@ pub struct DiskManager {
 
 // ページID（NewTypeパターン）
 pub struct PageID(pub u64);
+
+impl PageID {
+    pub fn to_u64(self) -> u64 {
+        self.0
+    }
+}
 
 impl DiskManager {
     // コンストラクタ
@@ -47,21 +54,21 @@ impl DiskManager {
     }
 
     // データの読み込み
-    pub fn read(&mut self, page_id: PageID, data: &[u8]) -> io::Result<()> {
+    pub fn read(&mut self, page_id: PageID, data: &mut [u8]) -> io::Result<()> {
         // ファイルディスクリプタを読み込むデータの先頭にシーク
-        let offset = PAGE_SIZE * page_id;
+        let offset = PAGE_SIZE * page_id.to_u64();
         self.heap_file.seek(SeekFrom::Start(offset))?;
 
         // データの読み込み
-        self.heap_file.read_exact(&data)
+        self.heap_file.read_exact(data)
     }
 
     // データの書き込み
     pub fn write(&mut self, page_id: PageID, data: &[u8]) -> io::Result<()> {
-        let offset = PAGE_SIZE * page_id;
+        let offset = PAGE_SIZE * page_id.to_u64();
         self.heap_file.seek(SeekFrom::Start(offset))?;
 
-        // データの読み込み
-        self.heap_file.write_all(&data)
+        // データの書き込み
+        self.heap_file.write_all(data)
     }
 }
