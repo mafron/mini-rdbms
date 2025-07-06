@@ -3,7 +3,7 @@ use std::path::Path;
 use std::io::{self, prelude::*, SeekFrom};
 
 // ページサイズ：4096Byte固定
-const PAGE_SIZE: usize = 4096;
+pub const PAGE_SIZE: usize = 4096;
 
 // ディスクマネージャ
 // ・ディスクへのファイル（ヒープファイル）の読み書きを行う
@@ -18,10 +18,10 @@ pub struct DiskManager {
 }
 
 // ページID（NewTypeパターン）
-#[derive(Clone, Copy, Debug)]
-pub struct PageID(pub u64);
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
+pub struct PageId(pub u64);
 
-impl PageID {
+impl PageId {
     pub fn to_u64(self) -> u64 {
         self.0
     }
@@ -48,14 +48,14 @@ impl DiskManager {
     }
 
     // ページの割り当て
-    pub fn allocate_page(&mut self) -> PageID {
+    pub fn allocate_page(&mut self) -> PageId {
         let page_id = self.next_page_id;
         self.next_page_id += 1;
-        PageID(page_id)
+        PageId(page_id)
     }
 
     // データの読み込み
-    pub fn read(&mut self, page_id: PageID, data: &mut [u8]) -> io::Result<()> {
+    pub fn read(&mut self, page_id: PageId, data: &mut [u8]) -> io::Result<()> {
         // ファイルディスクリプタを読み込むデータの先頭にシーク
         let offset = PAGE_SIZE as u64 * page_id.to_u64();
         self.heap_file.seek(SeekFrom::Start(offset))?;
@@ -65,7 +65,7 @@ impl DiskManager {
     }
 
     // データの書き込み
-    pub fn write(&mut self, page_id: PageID, data: &[u8]) -> io::Result<()> {
+    pub fn write(&mut self, page_id: PageId, data: &[u8]) -> io::Result<()> {
         let offset = PAGE_SIZE as u64 * page_id.to_u64();
         self.heap_file.seek(SeekFrom::Start(offset))?;
 
@@ -85,7 +85,7 @@ mod tests {
         let (_, data_file_path) = NamedTempFile::new().unwrap().into_parts();
         let mut disk = DiskManager::new(&data_file_path).unwrap();
 
-        // PageIDの採番
+        // PageIdの採番
         let test_page_id = disk.allocate_page();
 
         // tempファイルへの書き込み
